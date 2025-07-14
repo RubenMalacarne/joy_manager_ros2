@@ -16,7 +16,12 @@ add_executable(joystick_radiomaster_pocket src/joystick_radiomaster_pocket.cpp)
 ament_target_dependencies(joystick_radiomaster_pocket rclcpp sensor_msgs geometry_msgs std_msgs)
 
 
-install(TARGETS joystick_radiomaster_pocket
+add_executable(dualshock_ps4 src/dualshock_ps4.cpp)
+ament_target_dependencies(dualshock_ps4 rclcpp sensor_msgs std_msgs)
+
+install(TARGETS 
+  joystick_radiomaster_pocket
+  dualshock_ps4
   DESTINATION lib/${PROJECT_NAME}
 )
 
