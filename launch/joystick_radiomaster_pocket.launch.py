@@ -25,7 +25,7 @@ def generate_launch_description():
                 'switch_SB_topic': 'joystick/switch_SB',
                 'button_SD_topic': 'joystick/SD',
                 'button_SA_topic': 'joystick/SA',
-                'button_SE_topic': 'capture_trigger',
+                'button_SE_topic': 'joystick/SE',
                 'button_SAB_topic': 'joystick/SAB'
             }]
         )
