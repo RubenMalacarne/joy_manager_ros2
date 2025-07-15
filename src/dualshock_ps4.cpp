@@ -1,6 +1,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
+#include "std_msgs/msg/float32.hpp"
 #include "std_msgs/msg/bool.hpp"
 
 using std::placeholders::_1;
@@ -14,6 +15,8 @@ public:
             "/joy", 10, std::bind(&DualShock4Node::joy_callback, this, _1));
         
         this->declare_parameter<std::string>("rpyt_topic", "joystick_dualshock4/rpyt");
+        this->declare_parameter<std::string>("l2_gear_topic", "joystick/l2_gear");
+        this->declare_parameter<std::string>("r2_gear_topic", "joystick/r2_gear");
         this->declare_parameter<std::string>("button_X_topic", "joystick/button_X");
         this->declare_parameter<std::string>("button_Circle_topic", "joystick/button_Circle");
         this->declare_parameter<std::string>("button_Triangle_topic", "joystick/button_Triangle");
@@ -28,6 +31,8 @@ public:
         this->declare_parameter<std::string>("button_R3_topic", "joystick/button_R3");
         
         std::string rpyt_topic = this->get_parameter("rpyt_topic").as_string();
+        std::string l2_gear_topic = this->get_parameter("l2_gear_topic").as_string();
+        std::string r2_gear_topic = this->get_parameter("r2_gear_topic").as_string();
         std::string button_X_topic = this->get_parameter("button_X_topic").as_string();
         std::string button_Circle_topic = this->get_parameter("button_Circle_topic").as_string();
         std::string button_Triangle_topic = this->get_parameter("button_Triangle_topic").as_string();
@@ -42,6 +47,8 @@ public:
         std::string button_R3_topic = this->get_parameter("button_R3_topic").as_string();
         
         rpyt_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>(rpyt_topic, 10);
+        l2_gear_pub_ = this->create_publisher<std_msgs::msg::Float32>(l2_gear_topic, 10);
+        r2_gear_pub_ = this->create_publisher<std_msgs::msg::Float32>(r2_gear_topic, 10);
         button_X_pub_ = this->create_publisher<std_msgs::msg::Bool>(button_X_topic, 10);
         button_Circle_pub_ = this->create_publisher<std_msgs::msg::Bool>(button_Circle_topic, 10);
         button_Triangle_pub_ = this->create_publisher<std_msgs::msg::Bool>(button_Triangle_topic, 10);
@@ -64,8 +71,14 @@ private:
         // Assi principali RPYT -> assi 0,1,2,3 (stick sinistro X/Y, stick destro X/Y)
         if (msg->axes.size() >= 4) {
             std_msgs::msg::Float32MultiArray rpyt_msg;
-            rpyt_msg.data = {msg->axes[0], msg->axes[1], msg->axes[2], msg->axes[3]};
+            rpyt_msg.data = {msg->axes[0], msg->axes[1], msg->axes[3], msg->axes[4]};
             rpyt_pub_->publish(rpyt_msg);
+        }
+
+        // Assi per gear L2 e R2 -> assi 2 e 5
+        if (msg->axes.size() >= 6) {
+            publish_axis(l2_gear_pub_, msg->axes[2]);
+            publish_axis(r2_gear_pub_, msg->axes[5]);
         }
 
         // Pulsanti DualShock 4 (12 pulsanti)
@@ -80,8 +93,8 @@ private:
             publish_button(button_R2_pub_, msg->buttons[7]);          // R2
             publish_button(button_Share_pub_, msg->buttons[8]);       // Share
             publish_button(button_Options_pub_, msg->buttons[9]);     // Options
-            publish_button(button_L3_pub_, msg->buttons[10]);         // L3 (stick sinistro premuto)
-            publish_button(button_R3_pub_, msg->buttons[11]);         // R3 (stick destro premuto)
+            publish_button(button_L3_pub_, msg->buttons[11]);         // L3 (stick sinistro premuto)
+            publish_button(button_R3_pub_, msg->buttons[12]);         // R3 (stick destro premuto)
         }
     }
 
@@ -92,11 +105,20 @@ private:
         pub->publish(msg);
     }
 
+    void publish_axis(rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr pub, float value)
+    {
+        std_msgs::msg::Float32 msg;
+        msg.data = value;
+        pub->publish(msg);
+    }
+
     // Subscriber
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
 
     // Publisher per assi
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr rpyt_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr l2_gear_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr r2_gear_pub_;
 
     // Publisher per pulsanti
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr button_X_pub_;

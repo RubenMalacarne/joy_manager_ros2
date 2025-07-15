@@ -30,7 +30,10 @@ def generate_launch_description():
                 'button_Share_topic': 'joystick/button_Share',
                 'button_Options_topic': 'joystick/button_Options',
                 'button_L3_topic': 'joystick/button_L3',
-                'button_R3_topic': 'joystick/button_R3'
+                'button_R3_topic': 'joystick/button_R3',
+                'r2_gear_topic': 'joystick/r2_gear',
+                'r2_gear_topic': 'joystick/r2_gear'
             }]
         )
     ])
+    
