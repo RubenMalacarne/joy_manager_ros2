@@ -3,6 +3,8 @@
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "std_msgs/msg/float32.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include <algorithm>
+#include <array>
 
 using std::placeholders::_1;
 
@@ -30,6 +32,21 @@ public:
         this->declare_parameter<std::string>("button_L3_topic", "joystick/button_L3");
         this->declare_parameter<std::string>("button_R3_topic", "joystick/button_R3");
         
+        // Parametri per la rimappatura degli assi
+        this->declare_parameter<double>("axis_0_min", -1.0);
+        this->declare_parameter<double>("axis_0_max", 1.0);
+        this->declare_parameter<double>("axis_1_min", -1.0);
+        this->declare_parameter<double>("axis_1_max", 1.0);
+        this->declare_parameter<double>("axis_2_min", -1.0);
+        this->declare_parameter<double>("axis_2_max", 1.0);
+        this->declare_parameter<double>("axis_3_min", -1.0);
+        this->declare_parameter<double>("axis_3_max", 1.0);
+        this->declare_parameter<double>("axis_4_min", -1.0);
+        this->declare_parameter<double>("axis_4_max", 1.0);
+        this->declare_parameter<double>("axis_5_min", -1.0);
+        this->declare_parameter<double>("axis_5_max", 1.0);
+        
+        // Valori di output rimappati
         std::string rpyt_topic = this->get_parameter("rpyt_topic").as_string();
         std::string l2_gear_topic = this->get_parameter("l2_gear_topic").as_string();
         std::string r2_gear_topic = this->get_parameter("r2_gear_topic").as_string();
@@ -45,6 +62,20 @@ public:
         std::string button_Options_topic = this->get_parameter("button_Options_topic").as_string();
         std::string button_L3_topic = this->get_parameter("button_L3_topic").as_string();
         std::string button_R3_topic = this->get_parameter("button_R3_topic").as_string();
+        
+        // Caricamento parametri per la rimappatura degli assi
+        axis_min_[0] = this->get_parameter("axis_0_min").as_double();
+        axis_max_[0] = this->get_parameter("axis_0_max").as_double();
+        axis_min_[1] = this->get_parameter("axis_1_min").as_double();
+        axis_max_[1] = this->get_parameter("axis_1_max").as_double();
+        axis_min_[2] = this->get_parameter("axis_2_min").as_double();
+        axis_max_[2] = this->get_parameter("axis_2_max").as_double();
+        axis_min_[3] = this->get_parameter("axis_3_min").as_double();
+        axis_max_[3] = this->get_parameter("axis_3_max").as_double();
+        axis_min_[4] = this->get_parameter("axis_4_min").as_double();
+        axis_max_[4] = this->get_parameter("axis_4_max").as_double();
+        axis_min_[5] = this->get_parameter("axis_5_min").as_double();
+        axis_max_[5] = this->get_parameter("axis_5_max").as_double();
         
         rpyt_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>(rpyt_topic, 10);
         l2_gear_pub_ = this->create_publisher<std_msgs::msg::Float32>(l2_gear_topic, 10);
@@ -63,6 +94,9 @@ public:
         button_R3_pub_ = this->create_publisher<std_msgs::msg::Bool>(button_R3_topic, 10);
 
         RCLCPP_INFO(this->get_logger(), "DualShock 4 Joystick Controller Node Started");
+        for (int i = 0; i < 6; i++) {
+            RCLCPP_INFO(this->get_logger(), "Axis %d input range: [%.2f, %.2f]", i, axis_min_[i], axis_max_[i]);
+        }
     }
 
 private:
@@ -71,14 +105,19 @@ private:
         // Assi principali RPYT -> assi 0,1,2,3 (stick sinistro X/Y, stick destro X/Y)
         if (msg->axes.size() >= 4) {
             std_msgs::msg::Float32MultiArray rpyt_msg;
-            rpyt_msg.data = {msg->axes[0], msg->axes[1], msg->axes[3], msg->axes[4]};
+            rpyt_msg.data = {
+                remap_axis(msg->axes[0], 0),  // Roll (stick sinistro X)
+                remap_axis(msg->axes[1], 1),  // Pitch (stick sinistro Y)
+                remap_axis(msg->axes[3], 3),  // Yaw (stick destro X)
+                remap_axis(msg->axes[4], 4)   // Thrust (stick destro Y)
+            };
             rpyt_pub_->publish(rpyt_msg);
         }
 
         // Assi per gear L2 e R2 -> assi 2 e 5
         if (msg->axes.size() >= 6) {
-            publish_axis(l2_gear_pub_, msg->axes[2]);
-            publish_axis(r2_gear_pub_, msg->axes[5]);
+            publish_axis_remapped(l2_gear_pub_, msg->axes[2], 2);
+            publish_axis_remapped(r2_gear_pub_, msg->axes[5], 5);
         }
 
         // Pulsanti DualShock 4 (12 pulsanti)
@@ -112,6 +151,19 @@ private:
         pub->publish(msg);
     }
 
+    void publish_axis_remapped(rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr pub, float value, int axis_index)
+    {
+        std_msgs::msg::Float32 msg;
+        msg.data = remap_axis(value, axis_index);
+        pub->publish(msg);
+    }
+
+    // Funzione per rimappare i valori degli assi
+    float remap_axis(float value, int axis_index)
+    {
+        return axis_min_[axis_index] + ( (value + 1.0) / 2.0 ) * (axis_max_[axis_index] - axis_min_[axis_index]);
+    }
+
     // Subscriber
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
 
@@ -133,6 +185,12 @@ private:
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr button_Options_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr button_L3_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr button_R3_pub_;
+
+    // Parametri per la rimappatura degli assi
+    std::array<double, 6> axis_min_;  // Valori minimi per ogni asse (0-5)
+    std::array<double, 6> axis_max_;  // Valori massimi per ogni asse (0-5)
+    double output_min_;               // Valore minimo di output
+    double output_max_;               // Valore massimo di output
 };
 
 int main(int argc, char **argv)

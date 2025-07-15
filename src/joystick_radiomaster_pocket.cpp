@@ -3,6 +3,8 @@
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "std_msgs/msg/float32.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include <algorithm>
+#include <array>
 
 using std::placeholders::_1;
 
@@ -22,6 +24,27 @@ public:
         this->declare_parameter<std::string>("button_SA_topic", "joystick/SA");
         this->declare_parameter<std::string>("button_SE_topic", "joystick/SE");
         this->declare_parameter<std::string>("button_SAB_topic", "joystick/SAB");
+        
+        // Parametri per la rimappatura degli assi (Radiomaster ha 7 assi: 0-6)
+        this->declare_parameter<double>("axis_0_min", -1.0);
+        this->declare_parameter<double>("axis_0_max", 1.0);
+        this->declare_parameter<double>("axis_1_min", -1.0);
+        this->declare_parameter<double>("axis_1_max", 1.0);
+        this->declare_parameter<double>("axis_2_min", -1.0);
+        this->declare_parameter<double>("axis_2_max", 1.0);
+        this->declare_parameter<double>("axis_3_min", -1.0);
+        this->declare_parameter<double>("axis_3_max", 1.0);
+        this->declare_parameter<double>("axis_4_min", -1.0);
+        this->declare_parameter<double>("axis_4_max", 1.0);
+        this->declare_parameter<double>("axis_5_min", -1.0);
+        this->declare_parameter<double>("axis_5_max", 1.0);
+        this->declare_parameter<double>("axis_6_min", -1.0);
+        this->declare_parameter<double>("axis_6_max", 1.0);
+        
+        // Valori di output rimappati
+        this->declare_parameter<double>("output_min", -1.0);
+        this->declare_parameter<double>("output_max", 1.0);
+        
         std::string rpyt_topic = this->get_parameter("rpyt_topic").as_string();
         std::string gear_S1_topic = this->get_parameter("gear_S1_topic").as_string();
         std::string switch_SC_topic = this->get_parameter("switch_SC_topic").as_string();
