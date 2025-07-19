@@ -16,7 +16,10 @@ public:
         joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
             "/joy", 10, std::bind(&DualShock4Node::joy_callback, this, _1));
         
-        this->declare_parameter<std::string>("rpyt_topic", "joystick_dualshock4/rpyt");
+        this->declare_parameter<std::string>("roll_topic", "joystick/roll");
+        this->declare_parameter<std::string>("pitch_topic", "joystick/pitch");
+        this->declare_parameter<std::string>("yaw_topic", "joystick/yaw");
+        this->declare_parameter<std::string>("thrust_topic", "joystick/thrust");
         this->declare_parameter<std::string>("l2_gear_topic", "joystick/l2_gear");
         this->declare_parameter<std::string>("r2_gear_topic", "joystick/r2_gear");
         this->declare_parameter<std::string>("button_X_topic", "joystick/button_X");
@@ -47,7 +50,10 @@ public:
         this->declare_parameter<double>("axis_5_max", 1.0);
         
         // Valori di output rimappati
-        std::string rpyt_topic = this->get_parameter("rpyt_topic").as_string();
+        std::string roll_topic = this->get_parameter("roll_topic").as_string();
+        std::string pitch_topic = this->get_parameter("pitch_topic").as_string();
+        std::string yaw_topic = this->get_parameter("yaw_topic").as_string();
+        std::string thrust_topic = this->get_parameter("thrust_topic").as_string();
         std::string l2_gear_topic = this->get_parameter("l2_gear_topic").as_string();
         std::string r2_gear_topic = this->get_parameter("r2_gear_topic").as_string();
         std::string button_X_topic = this->get_parameter("button_X_topic").as_string();
@@ -77,7 +83,10 @@ public:
         axis_min_[5] = this->get_parameter("axis_5_min").as_double();
         axis_max_[5] = this->get_parameter("axis_5_max").as_double();
         
-        rpyt_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>(rpyt_topic, 10);
+        roll_pub_ = this->create_publisher<std_msgs::msg::Float32>(roll_topic, 10);
+        pitch_pub_ = this->create_publisher<std_msgs::msg::Float32>(pitch_topic, 10);
+        yaw_pub_ = this->create_publisher<std_msgs::msg::Float32>(yaw_topic, 10);
+        thrust_pub_ = this->create_publisher<std_msgs::msg::Float32>(thrust_topic, 10);
         l2_gear_pub_ = this->create_publisher<std_msgs::msg::Float32>(l2_gear_topic, 10);
         r2_gear_pub_ = this->create_publisher<std_msgs::msg::Float32>(r2_gear_topic, 10);
         button_X_pub_ = this->create_publisher<std_msgs::msg::Bool>(button_X_topic, 10);
@@ -102,16 +111,19 @@ public:
 private:
     void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
     {
-        // Assi principali RPYT -> assi 0,1,2,3 (stick sinistro X/Y, stick destro X/Y)
-        if (msg->axes.size() >= 4) {
-            std_msgs::msg::Float32MultiArray rpyt_msg;
-            rpyt_msg.data = {
-                remap_axis(msg->axes[0], 0),  // Roll (stick sinistro X)
-                remap_axis(msg->axes[1], 1),  // Pitch (stick sinistro Y)
-                remap_axis(msg->axes[3], 3),  // Yaw (stick destro X)
-                remap_axis(msg->axes[4], 4)   // Thrust (stick destro Y)
-            };
-            rpyt_pub_->publish(rpyt_msg);
+        // Assi principali separati individualmente
+        if (msg->axes.size() >= 5) {
+            // Roll (stick sinistro X)
+            publish_axis_remapped(roll_pub_, msg->axes[0], 0);
+            
+            // Pitch (stick sinistro Y)
+            publish_axis_remapped(pitch_pub_, msg->axes[1], 1);
+            
+            // Yaw (stick destro X)
+            publish_axis_remapped(yaw_pub_, msg->axes[3], 3);
+            
+            // Thrust (stick destro Y)
+            publish_axis_remapped(thrust_pub_, msg->axes[4], 4);
         }
 
         // Assi per gear L2 e R2 -> assi 2 e 5
@@ -168,7 +180,10 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
 
     // Publisher per assi
-    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr rpyt_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr roll_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr pitch_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr yaw_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr thrust_pub_;
     rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr l2_gear_pub_;
     rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr r2_gear_pub_;
 
@@ -189,8 +204,6 @@ private:
     // Parametri per la rimappatura degli assi
     std::array<double, 6> axis_min_;  // Valori minimi per ogni asse (0-5)
     std::array<double, 6> axis_max_;  // Valori massimi per ogni asse (0-5)
-    double output_min_;               // Valore minimo di output
-    double output_max_;               // Valore massimo di output
 };
 
 int main(int argc, char **argv)
