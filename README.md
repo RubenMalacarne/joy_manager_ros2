@@ -29,7 +29,7 @@ This launch file starts two ROS 2 nodes:
 
 ### Goal
 
-Enable advanced control using a PS4 controller, with the ability to dynamically configure the topics and service names associated with buttons, triggers, and joysticks.
+Enable advanced control using a controller, with the ability to dynamically configure the topics and service names associated with buttons, triggers, and joysticks.
 
 ---
 
