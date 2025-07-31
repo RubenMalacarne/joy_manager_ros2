@@ -1,42 +1,7 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    launch_args = [
-        DeclareLaunchArgument(
-            'roll_topic',
-            default_value='joystick/roll',
-            description='Topic per il roll'
-        ),
-        DeclareLaunchArgument(
-            'pitch_topic',
-            default_value='/arganello/sx/target_torque',
-            description='Topic per il pitch'
-        ),
-        DeclareLaunchArgument(
-            'yaw_topic',
-            default_value='joystick/yaw',
-            description='Topic per il yaw'
-        ),
-        DeclareLaunchArgument(
-            'thrust_topic',
-            default_value='/arganello/dx/target_torque',
-            description='Topic per il thrust'
-        ),
-        DeclareLaunchArgument(
-            'axis_0_min',
-            default_value='-1.0',
-            description='Valore minimo dell\'asse 0'
-        ),
-        DeclareLaunchArgument(
-            'axis_0_max',
-            default_value='1.0',
-            description='Valore massimo dell\'asse 0'
-        ),
-    ]
-
     joy_node = Node(
         package='joy',
         executable='joy_node',
@@ -52,10 +17,10 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             # Topic configurabili da CLI
-            'roll_topic': LaunchConfiguration('roll_topic'),
-            'pitch_topic': LaunchConfiguration('pitch_topic'),
-            'yaw_topic': LaunchConfiguration('yaw_topic'),
-            'thrust_topic': LaunchConfiguration('thrust_topic'),
+            'roll_topic': 'joystick/roll',
+            'pitch_topic': '/arganello/sx/target_torque',
+            'yaw_topic': 'joystick/yaw',
+            'thrust_topic': '/arganello/dx/target_torque',
             #services
             'button_X_service': 'joystick/button_X',
             'button_Circle_service': 'joystick/button_Circle',
@@ -76,11 +41,8 @@ def generate_launch_description():
             'l2_gear_topic': 'joystick/l2_gear',
             'r2_gear_topic': 'joystick/r2_gear',
             
-            # Parametri di rimappatura assi (asse 0 configurabile da CLI)
-            'axis_0_min': PythonExpression(['float(', LaunchConfiguration('axis_0_min'), ')']),
-            'axis_0_max': PythonExpression(['float(', LaunchConfiguration('axis_0_max'), ')']),
-            
-            # Gli altri assi restano con i valori di default
+            # Parametri di rimappatura assi
+            'axis_0_min': -1.0, 'axis_0_max': 1.0,
             'axis_1_min': -1.0, 'axis_1_max': 1.0,
             'axis_2_min': -1.0, 'axis_2_max': 1.0,
             'axis_3_min': -1.0, 'axis_3_max': 1.0,
@@ -89,5 +51,4 @@ def generate_launch_description():
         }]
     )
 
-    # ────── 4. LaunchDescription finale ──────
-    return LaunchDescription(launch_args + [joy_node, ds4_node])
+    return LaunchDescription([joy_node, ds4_node])
