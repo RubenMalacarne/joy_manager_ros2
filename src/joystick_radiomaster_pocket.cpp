@@ -7,6 +7,7 @@
 #include "joy_manager/srv/switch_command.hpp"
 #include <algorithm>
 #include <array>
+#include "std_srvs/srv/trigger.hpp"
 
 using std::placeholders::_1;
 
@@ -74,7 +75,7 @@ public:
         switch_SC_labels_[0] = this->get_parameter("switch_SC_low_label").as_string();    // LOW
         switch_SC_labels_[1] = this->get_parameter("switch_SC_center_label").as_string(); // CENTER
         switch_SC_labels_[2] = this->get_parameter("switch_SC_high_label").as_string();   // HIGH
-        
+
         // Get switch SB position labels
         switch_SB_labels_[0] = this->get_parameter("switch_SB_low_label").as_string();    // LOW
         switch_SB_labels_[1] = this->get_parameter("switch_SB_center_label").as_string(); // CENTER
@@ -92,7 +93,7 @@ public:
         switch_SB_client_ = this->create_client<joy_manager::srv::SwitchCommand>(switch_SB_service);
         button_SD_client_ = this->create_client<std_srvs::srv::SetBool>(button_SD_service);
         button_SA_client_ = this->create_client<std_srvs::srv::SetBool>(button_SA_service);
-        button_SE_client_ = this->create_client<std_srvs::srv::SetBool>(button_SE_service);
+        button_SE_client_ = this->create_client<std_srvs::srv::Trigger>(button_SE_service);
         button_SAB_client_ = this->create_client<std_srvs::srv::SetBool>(button_SAB_service);
 
         RCLCPP_INFO(this->get_logger(), "Radiomaster Joystick Controller Node Started");
@@ -100,9 +101,9 @@ public:
         {
             RCLCPP_INFO(this->get_logger(), "Axis %d input range: [%.2f, %.2f]", i, axis_min_[i], axis_max_[i]);
         }
-        RCLCPP_INFO(this->get_logger(), "Switch SC discrete 3-state logic (0=%s, 1=%s, 2=%s)", 
+        RCLCPP_INFO(this->get_logger(), "Switch SC discrete 3-state logic (0=%s, 1=%s, 2=%s)",
                     switch_SC_labels_[0].c_str(), switch_SC_labels_[1].c_str(), switch_SC_labels_[2].c_str());
-        RCLCPP_INFO(this->get_logger(), "Switch SB discrete 3-state logic (0=%s, 1=%s, 2=%s)", 
+        RCLCPP_INFO(this->get_logger(), "Switch SB discrete 3-state logic (0=%s, 1=%s, 2=%s)",
                     switch_SB_labels_[0].c_str(), switch_SB_labels_[1].c_str(), switch_SB_labels_[2].c_str());
     }
 
@@ -124,13 +125,39 @@ private:
         }
         if (msg->buttons.size() >= 4)
         {
-            call_button_service_on_change(button_SE_client_, msg->buttons[0], 0);
+            call_trigger_service_on_edge(button_SE_client_, msg->buttons[2], 2);
             call_button_service_on_change(button_SA_client_, msg->buttons[1], 1);
-            call_button_service_on_change(button_SD_client_, msg->buttons[2], 2);
+            call_button_service_on_change(button_SD_client_, msg->buttons[0], 0);
             call_button_service_on_change(button_SAB_client_, msg->buttons[3], 3);
         }
     }
+    void call_trigger_service_on_edge(rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client,
+                                      bool button_pressed, int button_index)
+    {
+        if (button_pressed && !previous_button_states_[button_index])
+        {
+            previous_button_states_[button_index] = true;
 
+            if (client->service_is_ready())
+            {
+                auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+                auto future = client->async_send_request(request);
+
+                RCLCPP_INFO(this->get_logger(),
+                            "Button %d pressed -> Trigger service called", button_index);
+            }
+            else
+            {
+                RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                                     "Trigger service for button %d not available", button_index);
+            }
+        }
+        else if (!button_pressed && previous_button_states_[button_index])
+        {
+            // Update on release without calling the service
+            previous_button_states_[button_index] = false;
+        }
+    }
     void call_switch_service_on_change(rclcpp::Client<joy_manager::srv::SwitchCommand>::SharedPtr client,
                                        float switch_value, int switch_index)
     {
@@ -148,7 +175,7 @@ private:
         {
             discrete_state = 1; // CENTER
         }
-        
+
         // Get the appropriate label based on switch index
         if (switch_index == 0) // Switch SC
         {
@@ -188,7 +215,7 @@ private:
     }
 
     void call_button_service_on_change(rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr client,
-                                        bool button_pressed, int button_index)
+                                       bool button_pressed, int button_index)
     {
         if (button_pressed != previous_button_states_[button_index])
         {
@@ -236,7 +263,7 @@ private:
     rclcpp::Client<joy_manager::srv::SwitchCommand>::SharedPtr switch_SB_client_;
     rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr button_SD_client_;
     rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr button_SA_client_;
-    rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr button_SE_client_;
+    rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr button_SE_client_;
     rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr button_SAB_client_;
 
     std::array<double, 6> axis_min_;
@@ -244,7 +271,7 @@ private:
 
     std::array<bool, 4> previous_button_states_;
     std::array<float, 2> previous_switch_states_;
-    
+
     // Switch position labels arrays - [0]=LOW, [1]=CENTER, [2]=HIGH
     std::array<std::string, 3> switch_SC_labels_;
     std::array<std::string, 3> switch_SB_labels_;
