@@ -30,7 +30,7 @@ def generate_launch_description():
                     'switch_SB_service': 'joystick/switch_SB',
                     'button_SD_service': 'joystick/SD',
                     'button_SA_service': 'joystick/SA',
-                    'button_SE_service': 'joystick/SE',
+                    'button_SE_service': 'service_trigger_dubins_path',
                     'button_SAB_service': 'joystick/SAB',
                     
                     'axis_0_min': -1.0, 'axis_0_max': 1.0,  # Roll
