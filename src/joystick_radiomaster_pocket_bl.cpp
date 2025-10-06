@@ -41,12 +41,12 @@ public:
         this->declare_parameter<double>("axis_3_max", 1.0);
         this->declare_parameter<double>("axis_4_min", -1.0);
         this->declare_parameter<double>("axis_4_max", 1.0);
-        this->declare_parameter<std::string>("switch_SC_low_label", "LOW");
+        this->declare_parameter<std::string>("switch_SC_low_label", "HIGH");
         this->declare_parameter<std::string>("switch_SC_center_label", "CENTER");
-        this->declare_parameter<std::string>("switch_SC_high_label", "HIGH");
-        this->declare_parameter<std::string>("switch_SB_low_label", "LOW");
+        this->declare_parameter<std::string>("switch_SC_high_label", "LOW");
+        this->declare_parameter<std::string>("switch_SB_low_label", "HIGH");
         this->declare_parameter<std::string>("switch_SB_center_label", "CENTER");
-        this->declare_parameter<std::string>("switch_SB_high_label", "HIGH");
+        this->declare_parameter<std::string>("switch_SB_high_label", "LOW");
 
         std::string roll_topic = this->get_parameter("roll_topic").as_string();
         std::string pitch_topic = this->get_parameter("pitch_topic").as_string();
@@ -114,14 +114,14 @@ private:
         {
             publish_axis_remapped(yaw_pub_, msg->axes[0], 2);      // Yaw on axis 0
             publish_axis_remapped(thrust_pub_, msg->axes[1], 3);   // Thrust on axis 1
-            publish_axis_remapped(roll_pub_, msg->axes[2], 0);     // Roll on axis 2
-            publish_axis_remapped(pitch_pub_, msg->axes[3], 1);    // Pitch on axis 3
+            publish_axis_remapped(gear_S1_pub_, msg->axes[2], 4);  // Gear S1 on axis 2
+            publish_axis_remapped(roll_pub_, msg->axes[3], 0);     // Roll on axis 3
+            publish_axis_remapped(pitch_pub_, msg->axes[4], 1);    // Pitch on axis 4
         }
         if (msg->axes.size() >= 7)
         {
-            publish_axis_remapped(gear_S1_pub_, msg->axes[4], 4);
-            call_switch_service_on_change(switch_SB_client_, msg->axes[6], 1); // SB on axis 5
-            call_switch_service_on_change(switch_SC_client_, msg->axes[5], 0); // SC on axis 6
+            call_switch_service_on_change(switch_SC_client_, msg->axes[5], 0); // SC on axis 5
+            call_switch_service_on_change(switch_SB_client_, msg->axes[6], 1); // SB on axis 6
         }
         if (msg->buttons.size() >= 4)
         {

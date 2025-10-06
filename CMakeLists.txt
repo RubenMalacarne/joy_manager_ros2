@@ -23,17 +23,22 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 ament_export_dependencies(rosidl_default_runtime)
 
 
+add_executable(joystick_radiomaster_pocket_bl src/joystick_radiomaster_pocket_bl.cpp)
+ament_target_dependencies(joystick_radiomaster_pocket_bl rclcpp sensor_msgs geometry_msgs std_msgs std_srvs)
+
 add_executable(joystick_radiomaster_pocket src/joystick_radiomaster_pocket.cpp)
 ament_target_dependencies(joystick_radiomaster_pocket rclcpp sensor_msgs geometry_msgs std_msgs std_srvs)
 
 # Make sure the generated interfaces are available
 rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(joystick_radiomaster_pocket_bl "${cpp_typesupport_target}")
 target_link_libraries(joystick_radiomaster_pocket "${cpp_typesupport_target}")
 
 add_executable(dualshock_ps4 src/dualshock_ps4.cpp)
 ament_target_dependencies(dualshock_ps4 rclcpp sensor_msgs std_msgs std_srvs) 
 
 install(TARGETS 
+  joystick_radiomaster_pocket_bl
   joystick_radiomaster_pocket
   dualshock_ps4
   DESTINATION lib/${PROJECT_NAME}
