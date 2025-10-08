@@ -30,7 +30,7 @@ def generate_launch_description():
                     'switch_SB_service': 'joystick/switch_SB', #axis 6
                     'button_SD_service': 'joystick/SD', #button 0
                     'button_SA_service': 'joystick/SA', #button 1
-                    'button_SE_service': 'joystick/SE', #button 2
+                    'button_SE_service': '/alpine/jump', #button 2
                     'button_SAB_service': 'joystick/SAB', #button 3
                     
                     'axis_0_min': 1.0, 'axis_0_max': -1.0,  # Roll (fisicamente axis 3, ma usa index 0 per remap)
