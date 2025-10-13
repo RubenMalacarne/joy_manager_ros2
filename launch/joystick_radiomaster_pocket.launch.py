@@ -51,7 +51,21 @@ def generate_launch_description():
         ]
     )
 
+    mix_mode_button_node = Node(
+        package='joy_manager',
+        executable='mix_mode_button',
+        name='mix_mode_button',
+        output='screen',
+        parameters=[{
+            'button_sa_service': 'joystick/SA',
+            'button_sd_service': 'joystick/SD',
+            'button_se_service': 'joystick/SE',
+            'trigger_service': '/alpine/jump'
+        }]
+    )
+
     return LaunchDescription([
         joy_node,
-        delayed_joystick_node
+        delayed_joystick_node,
+        mix_mode_button_node
     ])
